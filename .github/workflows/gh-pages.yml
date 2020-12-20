@@ -1,18 +1,20 @@
-name: pull-requests
+name: gh-pages
 
 on: 
-  pull_request
+  workflow_run:
+    workflows: [build-test]
+    branches: [master]
+    types:
+      - completed
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        node-version: [10.x]
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          persist-credentials: false      
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
@@ -27,10 +29,11 @@ jobs:
             ${{ runner.os }}-build-
             ${{ runner.os }}-          
       - run: npm install         
-      - run: npm run bootstrap
-      - run: npm run test:ci
-        env:
-          MOZ_HEADLESS: 1
-      - uses: codecov/codecov-action@v1
+      - run: npm run docs:build
+      - name: Deploy GH Pages 🚀
+        uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
-          directory: ./coverage
+          GITHUB_TOKEN: ${{ secrets.HUBJS_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: docs/build/hub.js
+          CLEAN: false
